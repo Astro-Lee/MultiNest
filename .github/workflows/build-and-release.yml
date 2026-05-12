@@ -50,7 +50,6 @@ jobs:
         run: |
           mkdir -p dist/multinest
           cp -r lib   dist/multinest/
-          cp -r bin   dist/multinest/
           cp -r modules dist/multinest/
           cp -r include dist/multinest/
           tar -czf multinest-${{ matrix.platform }}.tar.gz -C dist multinest

@@ -1,9 +1,5 @@
 .DS_Store
 
-MultiNest_v3.12_CMake/multinest/bin/*
-!MultiNest_v3.12_CMake/multinest/bin/chains/
-!MultiNest_v3.12_CMake/multinest/bin/chains/**
-
 MultiNest_v3.12_CMake/multinest/CMakeModules/*
 !MultiNest_v3.12_CMake/multinest/CMakeModules/FindMultiNest.cmake
 

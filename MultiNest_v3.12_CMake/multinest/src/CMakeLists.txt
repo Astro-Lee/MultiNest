@@ -161,9 +161,4 @@ INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/src/modules/ DESTINATION modules)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/include/multinest.h DESTINATION include)
 # Install the FindMultiNest.cmake script
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/CMakeModules/FindMultiNest.cmake DESTINATION CMakeModules)
-# and ensure the chains directory is created too
-INSTALL(DIRECTORY
-    ${CMAKE_SOURCE_DIR}/bin/chains
-    DESTINATION bin
-)
 
