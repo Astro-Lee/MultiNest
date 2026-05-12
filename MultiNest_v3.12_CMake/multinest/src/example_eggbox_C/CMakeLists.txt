@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 2.8) 
+cmake_minimum_required(VERSION 4.3.2) 
 
 # In a normal application you would do:
 # FIND_LIBRARY(MultiNest)
 # INCLUDE_DIRECTORIES(${MultiNest_INCLUDE_PATH})
 
-FIND_LIBRARY(m REQUIRED)
-
 FILE(GLOB SOURCE *.c)
 add_executable(eggboxC ${SOURCE})
-target_link_libraries(eggboxC ${MultiNest_LIBRARIES} m)
+target_link_libraries(eggboxC ${MultiNest_LIBRARIES})
+if(UNIX AND NOT APPLE)
+    target_link_libraries(eggboxC m)
+endif()
 
 # Set install directory
 INSTALL(TARGETS eggboxC DESTINATION bin)

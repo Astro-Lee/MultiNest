@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 4.3.2)
 project(multinest Fortran C CXX)
 
 # By default CMake will install MultiNest to /usr/local on Linux/Mac
@@ -10,7 +10,7 @@ project(multinest Fortran C CXX)
 
 #=============================================================================
 # All done editing
-SET(MultiNest_VERSION "3.11")
+SET(MultiNest_VERSION "3.12")
 
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
