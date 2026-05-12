@@ -9,7 +9,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
+
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: MultiNest_v3.12_CMake/multinest
@@ -17,16 +25,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y gfortran libopenblas-dev liblapack-dev openmpi-bin libopenmpi-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install gcc openblas open-mpi
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --parallel $(nproc)
+        run: cmake --build build --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: Package artifacts
         run: |
@@ -35,37 +49,45 @@ jobs:
           cp -r bin   dist/multinest/
           cp -r modules dist/multinest/
           cp -r include dist/multinest/
-          tar -czf multinest-linux-x86_64.tar.gz -C dist multinest
+          tar -czf multinest-${{ matrix.platform }}.tar.gz -C dist multinest
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: multinest-linux-x86_64
-          path: MultiNest_v3.12_CMake/multinest/multinest-linux-x86_64.tar.gz
+          name: multinest-${{ matrix.platform }}
+          path: MultiNest_v3.12_CMake/multinest/multinest-${{ matrix.platform }}.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: multinest-*
+          merge-multiple: true
+          path: artifacts
 
       - name: Extract version
-        if: startsWith(github.ref, 'refs/tags/v')
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: MultiNest_v3.12_CMake/multinest/multinest-linux-x86_64.tar.gz
+          files: artifacts/*
           generate_release_notes: true
 
       - name: Update Homebrew formula
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           URL="https://github.com/Astro-Lee/MultiNest/archive/refs/tags/v${VERSION}.tar.gz"
           curl -sL "$URL" -o /tmp/multinest.tar.gz
           SHA256=$(shasum -a 256 /tmp/multinest.tar.gz | cut -d' ' -f1)
-
-          git fetch origin master
-          git checkout master
 
           FORMULA="Formula/multinest.rb"
           sed -i "s|url \".*\"|url \"$URL\"|" "$FORMULA"

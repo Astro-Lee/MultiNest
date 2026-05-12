@@ -1,3 +1,31 @@
+## Install
+
+### Homebrew (macOS)
+
+```bash
+brew tap Astro-Lee/multinest https://github.com/Astro-Lee/MultiNest
+brew install multinest
+```
+
+### Build from source
+
+```bash
+# Linux
+sudo apt-get install gfortran libopenblas-dev liblapack-dev openmpi-bin libopenmpi-dev cmake
+
+# macOS
+brew install gcc openblas open-mpi cmake
+
+# Build & install
+git clone https://github.com/Astro-Lee/MultiNest.git
+cd MultiNest/MultiNest_v3.12_CMake/multinest
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake --build build
+cmake --install build
+```
+
+---------------------------------------------------------------------------
+
 # MultiNest
 MultiNest
 Farhan Feroz, Mike Hobson
