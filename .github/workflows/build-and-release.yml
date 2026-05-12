@@ -85,3 +85,23 @@ jobs:
         with:
           files: artifacts/*
           generate_release_notes: true
+
+      - name: Update Homebrew tap
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone https://x-access-token:${GH_PAT}@github.com/Astro-Lee/homebrew-tap.git /tmp/tap
+          URL="https://github.com/Astro-Lee/MultiNest/archive/refs/tags/v${VERSION}.tar.gz"
+          curl -sL "$URL" -o /tmp/multinest.tar.gz
+          SHA256=$(shasum -a 256 /tmp/multinest.tar.gz | cut -d' ' -f1)
+
+          FORMULA="/tmp/tap/Formula/multinest.rb"
+          sed -i "s|url \".*\"|url \"$URL\"|" "$FORMULA"
+          sed -i "s|sha256 \".*\"|sha256 \"$SHA256\"|" "$FORMULA"
+
+          git -C /tmp/tap config user.name "github-actions[bot]"
+          git -C /tmp/tap config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C /tmp/tap add "$FORMULA"
+          git -C /tmp/tap commit -m "Update multinest to v${VERSION}" || true
+          git -C /tmp/tap push
