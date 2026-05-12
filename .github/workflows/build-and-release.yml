@@ -55,11 +55,24 @@ jobs:
           files: MultiNest_v3.12_CMake/multinest/multinest-linux-x86_64.tar.gz
           generate_release_notes: true
 
-      - name: Trigger Homebrew tap update
+      - name: Update Homebrew formula
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GH_PAT }}
-          repository: Astro-Lee/homebrew-multinest
-          event-type: new-release
-          client-payload: '{"version": "${{ steps.version.outputs.VERSION }}"}'
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          URL="https://github.com/Astro-Lee/MultiNest/archive/refs/tags/v${VERSION}.tar.gz"
+          curl -sL "$URL" -o /tmp/multinest.tar.gz
+          SHA256=$(shasum -a 256 /tmp/multinest.tar.gz | cut -d' ' -f1)
+
+          git fetch origin master
+          git checkout master
+
+          FORMULA="Formula/multinest.rb"
+          sed -i "s|url \".*\"|url \"$URL\"|" "$FORMULA"
+          sed -i "s|sha256 \".*\"|sha256 \"$SHA256\"|" "$FORMULA"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$FORMULA"
+          git commit -m "Update formula sha256 for v${VERSION}" || true
+          git push origin master
