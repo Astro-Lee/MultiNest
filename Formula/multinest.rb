@@ -12,7 +12,7 @@ class Multinest < Formula
   def install
     cd "MultiNest_v3.12_CMake/multinest" do
       system "cmake", "-B", "build", *std_cmake_args
-      system "cmake", "--build", "build", "--parallel", "1"
+      system "cmake", "--build", "build"
       system "cmake", "--install", "build"
     end
   end

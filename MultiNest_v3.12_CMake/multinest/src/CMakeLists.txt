@@ -56,29 +56,31 @@ endif()
 # Collect the source:
 # ============================
 FILE(GLOB MultiNest_SOURCE *.f90 *.F90)
-# In previous versions of MultiNest (<3.8) the cwrapper.f90 file presented
-# some issues with older compilers, thus it was disabled by default. This
-# was fixed in r34, thus it is enabled by default now. Enable the following
-# two lines if it presents you with trouble.
-#FILE(GLOB MultiNest_REMOVE cwrapper.f90)
-#list(REMOVE_ITEM MultiNest_SOURCE ${MultiNest_REMOVE})
 
 # ============================
-# Build the non-MPI libraries:
+# Object library: compile source once, share objects across static/shared.
+# Avoids Fortran .mod file race conditions in parallel builds.
 # ============================
+ADD_LIBRARY(multinest_obj OBJECT ${MultiNest_SOURCE})
+SET_TARGET_PROPERTIES(multinest_obj PROPERTIES
+    LINKER_LANGUAGE Fortran
+    Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/src/modules
+)
+TARGET_LINK_LIBRARIES(multinest_obj PUBLIC ${LAPACK_LIBRARIES})
+
 # libmultinest.a
-ADD_LIBRARY(multinest_static STATIC ${MultiNest_SOURCE})
-SET_TARGET_PROPERTIES(multinest_static PROPERTIES LINKER_LANGUAGE Fortran 
+ADD_LIBRARY(multinest_static STATIC $<TARGET_OBJECTS:multinest_obj>)
+SET_TARGET_PROPERTIES(multinest_static PROPERTIES LINKER_LANGUAGE Fortran
     VERSION ${MultiNest_VERSION} OUTPUT_NAME multinest
 )
 TARGET_LINK_LIBRARIES(multinest_static ${LAPACK_LIBRARIES})
 
 # libmultinest.so
-ADD_LIBRARY(multinest_shared SHARED ${MultiNest_SOURCE})
-SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran 
+ADD_LIBRARY(multinest_shared SHARED $<TARGET_OBJECTS:multinest_obj>)
+SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran
     VERSION ${MultiNest_VERSION} OUTPUT_NAME multinest
 )
-TARGET_LINK_LIBRARIES(multinest_shared ${LAPACK_LIBRARIES})  
+TARGET_LINK_LIBRARIES(multinest_shared ${LAPACK_LIBRARIES})
 
 # Set the default library against which to link:
 SET(MultiNest_LIBRARIES multinest_shared)
@@ -90,47 +92,41 @@ FIND_PACKAGE(MPI)
 if(NOT MPI_Fortran_FOUND)
     MESSAGE(STATUS "MPI not found, only non-MPI MultiNest libraries will be built.")
 else()
-    ADD_LIBRARY(multinest_mpi_static STATIC ${MultiNest_SOURCE})
+    ADD_LIBRARY(multinest_mpi_obj OBJECT ${MultiNest_SOURCE})
+    SET_TARGET_PROPERTIES(multinest_mpi_obj PROPERTIES
+        LINKER_LANGUAGE Fortran
+        Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/src/modules_mpi
+    )
+    TARGET_LINK_LIBRARIES(multinest_mpi_obj PUBLIC ${LAPACK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+    TARGET_INCLUDE_DIRECTORIES(multinest_mpi_obj PRIVATE ${MPI_Fortran_INCLUDE_PATH})
+    TARGET_COMPILE_DEFINITIONS(multinest_mpi_obj PRIVATE MPI)
+    if(MPI_Fortran_COMPILE_FLAGS)
+        TARGET_COMPILE_OPTIONS(multinest_mpi_obj PRIVATE ${MPI_Fortran_COMPILE_FLAGS})
+    endif()
+
+    ADD_LIBRARY(multinest_mpi_static STATIC $<TARGET_OBJECTS:multinest_mpi_obj>)
     SET_TARGET_PROPERTIES(multinest_mpi_static PROPERTIES LINKER_LANGUAGE Fortran VERSION ${MultiNest_VERSION} OUTPUT_NAME multinest_mpi)
     TARGET_LINK_LIBRARIES(multinest_mpi_static ${LAPACK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
-    
-    ADD_LIBRARY(multinest_mpi_shared SHARED ${MultiNest_SOURCE})
-    SET_TARGET_PROPERTIES(multinest_mpi_shared PROPERTIES LINKER_LANGUAGE Fortran VERSION ${MultiNest_VERSION} OUTPUT_NAME multinest_mpi)    
-    TARGET_LINK_LIBRARIES(multinest_mpi_shared ${LAPACK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
-    
-    # Include directories, set linking requirements
-    INCLUDE_DIRECTORIES(${MPI_Fortran_INCLUDE_PATH})
 
-    # Set compilation flags, ensure -DMPI is, at a minimum, set.
-    if(${MPI_Fortran_COMPILE_FLAGS})
-        SET_TARGET_PROPERTIES(multinest_mpi_static multinest_mpi_shared PROPERTIES COMPILE_FLAGS ${MPI_Fortran_COMPILE_FLAGS}) 
-    else()
-        SET_TARGET_PROPERTIES(multinest_mpi_static multinest_mpi_shared PROPERTIES COMPILE_FLAGS "-DMPI")
+    ADD_LIBRARY(multinest_mpi_shared SHARED $<TARGET_OBJECTS:multinest_mpi_obj>)
+    SET_TARGET_PROPERTIES(multinest_mpi_shared PROPERTIES LINKER_LANGUAGE Fortran VERSION ${MultiNest_VERSION} OUTPUT_NAME multinest_mpi)
+    TARGET_LINK_LIBRARIES(multinest_mpi_shared ${LAPACK_LIBRARIES} ${MPI_Fortran_LIBRARIES})
+
+    if(MPI_Fortran_LINK_FLAGS)
+        SET_TARGET_PROPERTIES(multinest_mpi_static multinest_mpi_shared PROPERTIES LINK_FLAGS ${MPI_Fortran_LINK_FLAGS})
     endif()
-    
-    if(${MPI_Fortran_LINK_FLAGS})
-        SET_TARGET_PROPERTIES(multinest_mpi_static multinest_mpi_shared PROPERTIES LINK_FLAGS ${MPI_Fortran_LINK_FLAGS}) 
-    endif()
-    
-    # Set the default linking option to use the shared library.
+
     SET(MultiNest_LIBRARIES multinest_mpi_shared)
 endif ()
 
 # ============================
-# After compilation, copy the Fortran modules into the 'modules' directory.
+# After compilation, copy Fortran modules into the 'modules' directory.
 # ============================
 ADD_CUSTOM_COMMAND(
     TARGET multinest_static
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/kmeans_clstr.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/nested.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/posterior.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/priors.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/randomns.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/utils1.mod ${CMAKE_SOURCE_DIR}/modules/
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/xmeans_clstr.mod ${CMAKE_SOURCE_DIR}/modules/
-# cnested is not built by default anymore so it need not be copied
-#    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/src/cnested.mod ${CMAKE_SOURCE_DIR}/modules/
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/modules/
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/src/modules/ ${CMAKE_SOURCE_DIR}/modules/
 )
 
 # ============================
@@ -138,11 +134,8 @@ ADD_CUSTOM_COMMAND(
 # ============================
 
 # We need to modify the RPATH between the compilation and installation phases.
-# When we first build the programs, we use the full RPATH within the build tree
-# instead of the default system RPATH. This ensures the binaries are executable
-# right away.
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -152,7 +145,7 @@ IF("${isSystemDir}" STREQUAL "-1")
     SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 ENDIF("${isSystemDir}" STREQUAL "-1")
 
-# Determine which libraries we will be installing. 
+# Determine which libraries we will be installing.
 SET(MultiNest_INSTALL_LIBS multinest_static multinest_shared)
 if(MPI_Fortran_FOUND)
     LIST(APPEND MultiNest_INSTALL_LIBS multinest_mpi_static multinest_mpi_shared)
@@ -160,25 +153,12 @@ endif(MPI_Fortran_FOUND)
 
 # Specify where compiled files should go
 INSTALL(TARGETS ${MultiNest_INSTALL_LIBS} DESTINATION lib)
-# Don't forget the fortran modules!
-INSTALL(FILES 
-    ${CMAKE_BINARY_DIR}/src/kmeans_clstr.mod
-    ${CMAKE_BINARY_DIR}/src/nested.mod
-    ${CMAKE_BINARY_DIR}/src/posterior.mod
-    ${CMAKE_BINARY_DIR}/src/priors.mod 
-    ${CMAKE_BINARY_DIR}/src/randomns.mod
-    ${CMAKE_BINARY_DIR}/src/utils1.mod
-    ${CMAKE_BINARY_DIR}/src/xmeans_clstr.mod
-# cnested is not built by default anymore so it need not be installed.
-#    ${CMAKE_BINARY_DIR}/src/cnested.mod
-    DESTINATION modules
-)
+# Fortran modules
+INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/src/modules/ DESTINATION modules)
 # Install the multinest.h file
-# Install the FindMultiNest.cmake script (this probably isn't the right place)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/include/multinest.h DESTINATION include)
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/CMakeModules/FindMultiNest.cmake DESTINATION
-    CMakeModules
-)
+# Install the FindMultiNest.cmake script
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/CMakeModules/FindMultiNest.cmake DESTINATION CMakeModules)
 # and ensure the chains directory is created too
 INSTALL(DIRECTORY
     ${CMAKE_SOURCE_DIR}/bin/chains
