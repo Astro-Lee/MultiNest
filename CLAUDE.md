@@ -21,5 +21,5 @@ cmake --install build
 ## Key files
 
 - `src/CMakeLists.txt` — library build logic
-- `Formula/multinest.rb` — Homebrew formula
 - `.github/workflows/build-and-release.yml` — CI/CD
+- Homebrew tap: [Astro-Lee/homebrew-tap](https://github.com/Astro-Lee/homebrew-tap) — `brew install astro-lee/tap/multinest`

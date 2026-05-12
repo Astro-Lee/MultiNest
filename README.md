@@ -3,8 +3,7 @@
 ### Homebrew (macOS)
 
 ```bash
-brew tap Astro-Lee/multinest https://github.com/Astro-Lee/MultiNest
-brew install multinest
+brew install astro-lee/tap/multinest
 ```
 
 ### Build from source
