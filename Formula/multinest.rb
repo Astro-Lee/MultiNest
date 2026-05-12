@@ -6,7 +6,7 @@ class Multinest < Formula
 
   depends_on "cmake"  => :build
   depends_on "gcc"    # gfortran
-  depends_on "openblas"
+  depends_on "lapack"
   depends_on "open-mpi"
 
   def install
