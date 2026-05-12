@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -34,7 +37,7 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install gcc openblas open-mpi
+          brew install -q gcc openblas open-mpi || true
           echo "FC=$(brew --prefix gcc)/bin/gfortran" >> "$GITHUB_ENV"
 
       - name: Configure
