@@ -2,7 +2,7 @@ class Multinest < Formula
   desc "Efficient Bayesian inference with nested sampling"
   homepage "https://github.com/Astro-Lee/MultiNest"
   url "https://github.com/Astro-Lee/MultiNest/archive/refs/tags/v3.12.tar.gz"
-  sha256 "20d7ee7264a8432db14d6461791119f7b896290cd2c501749d7be67f46d232c9"
+  sha256 "f01a07d4deeea6b6c11673a5d95e93cf94a7d234601fd47ff6830b6647619e9c"
 
   depends_on "cmake"  => :build
   depends_on "gcc"    # gfortran
