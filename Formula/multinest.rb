@@ -17,8 +17,14 @@ class Multinest < Formula
     end
   end
 
+  def caveats
+    <<~EOS
+      Run this to add library path to your shell profile:
+        echo 'export DYLD_LIBRARY_PATH="#{lib}:$DYLD_LIBRARY_PATH"' >> ~/.zshrc
+    EOS
+  end
+
   test do
-    # 检查库文件和头文件是否存在
     assert_predicate lib/"libmultinest.dylib", :exist?
     assert_predicate include/"multinest.h", :exist?
   end
