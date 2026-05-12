@@ -2,10 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [master]
     tags: ['v*']
-  pull_request:
-    branches: [master]
 
 permissions:
   contents: write
@@ -99,6 +96,7 @@ jobs:
 
           FORMULA="Formula/multinest.rb"
           sed -i "s|url \".*\"|url \"$URL\"|" "$FORMULA"
+          sed -i "s|# sha256 \".*\"|sha256 \"$SHA256\"|" "$FORMULA"
           sed -i "s|sha256 \".*\"|sha256 \"$SHA256\"|" "$FORMULA"
 
           git config user.name "github-actions[bot]"
