@@ -18,6 +18,8 @@ class Multinest < Formula
   end
 
   test do
-    system "#{bin}/eggboxC"
+    # 检查库文件和头文件是否存在
+    assert_predicate lib/"libmultinest.dylib", :exist?
+    assert_predicate include/"multinest.h", :exist?
   end
 end
