@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3.2) 
+cmake_minimum_required(VERSION 3.10) 
 
 #=============================================================================
 # Copyright 2012 Brian Kloppenborg
