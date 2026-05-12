@@ -35,6 +35,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install gcc openblas open-mpi
+          echo "FC=$(brew --prefix gcc)/bin/gfortran" >> "$GITHUB_ENV"
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
